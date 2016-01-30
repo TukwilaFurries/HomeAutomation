@@ -1,21 +1,39 @@
 #!/usr/bin/python
 
 import os
+from Framework.logging import LEVEL
+from Framework.logging import OUTPUT
 
-# Directory path variables
-DIR_BASE = os.path.dirname(os.path.realpath(__file__))
-DIR_FRAMEWORK   = DIR_BASE + "/Framework"
-DIR_LOGS        = DIR_BASE + "/Logs"
-DIR_MODULES     = DIR_BASE + "/Modules"
+class DIR:
+    # Directory path variables
+    BASE = os.path.dirname(os.path.realpath(__file__))
+    FRAMEWORK   = BASE + "/Framework"
+    LOGS        = BASE + "/Logs"
+    MODS        = BASE + "/Modules"
+    RGB         = MODS + "/RGB"
 
-PI_ADDRESS     = "10.0.0.98"
-SERVER_ADDRESS = "10.0.0.99" 
+class FILE:
+    class LOG:
+        RGB = DIR.LOGS + "/rgb.out"
 
+class PI:
+    # IP Addresses
+    ADDR = "10.0.0.98"
 
+class SERVER:
+    ADDR = "10.0.0.99"
+    PORT = ""
+   
+class NAMES:
+    RGB          = "RGB"
 
-if __name__ == "__main__":
-    print DIR_BASE
-    print DIR_FRAMEWORK
-    print DIR_LOGS
-    print DIR_MODULES
+class GLOBAL:
+    class LOG:
+        LEVEL = LEVEL.STATUS
+        OUTPUT = OUTPUT.STDOUT
 
+class RGB:
+    class PIN:
+        R = 17
+        G = 22
+        B = 24

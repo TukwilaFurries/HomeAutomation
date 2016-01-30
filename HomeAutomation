@@ -1,0 +1,74 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+from Framework import *
+from Modules import *
+from Modules.RGB import *
+
+import time
+               
+def inalid_command(cmd):
+    print "Command \"" + cmd + "\" is not valid. Type -h for help"
+
+def print_help():
+    print "HELP"
+
+
+def MainLoop():
+    runProgram= True
+    piLights = PiLights()
+ 
+    print ("+ / - = Increase / Decrease brightness")
+    print ("p / r = Pause / Resume")
+    print ("c = Abort Program")   
+    pattern = Pattern()
+    RED = 0
+    GREEN = 0
+    BLUE = 0
+
+    while (runProgram):
+        
+        c = raw_input("Please enter a command: ")
+
+        if (len(c) is 1):
+            if c == '+':
+                pattern.setBrightLevel(pattern.getBrightLevel()+1)
+                print ("Current brightness: %d",  pattern.getBrightLevel())
+            
+            if c == '-':
+                pattern.setBrightLevel(pattern.getBrightLevel()-1)
+                print ("Current brightness: %d", pattern.getBrightLevel())
+            
+            if c == 'c' or c == 'C' or c == 'q' or c == 'Q':
+                runProgram = False
+
+            if c == 'h' or c == 'H':
+                print_help()
+        elif (len(c) > 2):
+            #(color, value) = get_color_value(c)
+            if (c[1] != '='):
+                invalid_command(c)
+            if (c[0] == 'r') or (c[0] == 'R'):
+                rValue = c[2:]
+                print "Changing Red to " + rValue
+                pattern.setColorR(0, rValue)
+            if (c[0] == 'g') or (c[0] == 'G'):
+                gValue = c[2:]
+                print "Changing Green to " + gValue
+                pattern.setColorG(0, gValue)
+            if (c[0] == 'b') or (c[0] == 'B'):
+                bValue = c[2:]
+                print "Changing Blue to " + bValue
+                pattern.setColorB(0, bValue)
+                print "Changed Blue to " + str(pattern.getColorB(0))
+            if (c[0] == '-'):
+                brightValue = c[2:]
+                pattern.setBrightLevel(brightValue)
+            if (c[0] == '+'):
+                brightValue = c[2:]
+                pattern.setBrightLevel(brightValue)
+        piLights.setPattern(pattern)
+
+    piLights.killProgram()
+
+if __name__ == '__main__':
+    MainLoop()

@@ -9,9 +9,16 @@ import pigpio
 import time
 import signal 
 from decimal import *
-from light_model import *
 import threading
-from light_utils import *
+
+from Modules import *
+from Framework import *
+#from Framework import logging as log
+from Modules.RGB.light_model import *
+from Framework.config import *
+from Modules.RGB.light_model import *
+
+import Framework.config
 
 # TODO:
 #   Exception Handling
@@ -23,61 +30,62 @@ class PiLights:
     RED_PIN   = 17
     GREEN_PIN = 22
     BLUE_PIN  = 24
-    RED = 0
-    GREEN = 1
-    BLUE = 2
 
     def lockMainLoop(self):
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "Locking main loop")
+        log.rgb_log(log.LEVEL.VERBOSE, "lockMainLoop()")
         self.mainLoopLock = True
 
     def unlockMainLoop(self):
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "Unlocking main loop")
+        log.rgb_log(log.LEVEL.VERBOSE, "unlockMainLoop()")
         self.mainLoopLock = False
 
     def setFadeTime(self, ft):
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "Fade Time Changed to " + str(ft))
+        log.rgb_log(log.LEVEL.STATUS, "Fade Time Changed to " + str(ft))
         self.mainLoopLock = True      
         self.fadeTime = ft
         self.mainLoopLock = False
+        self.configChagned = True
 
     def setLoopTime(self, lt):
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "Loop Time Changed to " + str(lt))
+        log.rgb_log(log.LEVEL.STATUS, "Loop Time Changed to " + str(lt))
         self.mainLoopLock = True
         self.loopTime = lt
         self.mainLoopLock = False
+        self.configChanged = True
 
     def setBrightLevel(self, bl):
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "Brightness Chanes to " + str(bl))
+        log.rgb_log(log.LEVEL.STATUS, "Brightness Chanes to " + str(bl))
         self.mainLoopLock = True       
         self.brightLevel = bl
         self.mainLoopLock = False
+        self.configChanged = True
 
     def setColorPattern(self, cp):
-        # XXX TODO: Describe the color patterns in detail
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "colorPattern: " + self.cp)
+        log.rgb_log(log.LEVEL.STATUS, "colorPattern: " + self.cp)
         self.mainLoopLock = True
         self.colorPattern = cp
         self.mainLoopLock = False
+        self.configChanged = True
 
     def setPattern(self, p):
-        # XXX: Describe VERBOSE pattern better
-        LIGHT_LOG(self.debug_level, LOG_VERBOSE, "setPattern()") 
+        log.rgb_log(log.LEVEL.VERBOSE, "setPattern()") 
         self.mainLoopLock = True
         self.fadeTime = p.getFadeTime()
         self.loopTime = p.getLoopTime()
         self.brightLevel = p.getBrightLevel()
         self.colorPattern = p.getColors()
 
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "Fade Time Changes to " + str(self.fadeTime))
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "Loop Time Changed to " + str(self.loopTime))
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "Brightnes Changed to " + str(self.brightLevel))
-        LIGHT_LOG(self.debug_level, LOG_STATUS, "Pattern changed to " + str(self.colorPattern))
+        log.rgb_log(log.LEVEL.STATUS, "Fade Time Changed to " + str(self.fadeTime))
+        log.rgb_log(log.LEVEL.STATUS, "Loop Time Changed to " + str(self.loopTime))
+        log.rgb_log(log.LEVEL.STATUS, "Brightnes Changed to " + str(self.brightLevel))
+        log.rgb_log(log.LEVEL.STATUS, "Pattern changed to " + str(self.colorPattern))
         self.mainLoopLock = False
+        self.configChanged = True
 
     def killProgram(self):
-        LIGHT_LOG(self.debug_level, LOG_VERBOSE, "killProgram()")
+        log.rgb_log(log.LEVEL.STATUS, "killProgram()")
         self.kill = True
+        self.configChanged = True
         self.mainLoopThread.join()
         self.pi.stop()
 
@@ -90,7 +98,7 @@ class PiLights:
         return color
 
     def setLights(self, pin, brightness, bright):
-        LIGHT_LOG(self.debug_level, LOG_VERBOSE, "Setting Pin " + str(pin) + " = " + str(brightness))
+        #log.rgb_log(log.LEVEL.DEBUG, "Setting Pin " + str(pin) + " = " + str(brightness))
         brightness = self.updateColor(brightness, 0)
         realBrightness = int(int(brightness) * (float(bright) / 255.0))
         self.pi.set_PWM_dutycycle(pin, realBrightness)
@@ -100,60 +108,63 @@ class PiLights:
     # brightLevel = The total brightness to use
     # pattern = The array of patterns to transition between
     def mainLoop(self):
-        LIGHT_LOG(self.debug_level, LOG_VERBOSE, "mainLoop()")
+        log.rgb_log(log.LEVEL.DEBUG, "mainLoop()")
         while (self.kill == False):
-            LIGHT_LOG(self.debug_level, LOG_STATUS, "Pattern = " + str(self.colorPattern))
-
+            self.configChanged = False
             while (self.mainLoopLock):
+                log.rgb_log(log.LEVEL.DEBUG, "Main Loop Locked")
                 time.sleep(.1)
-
             for x in range (0, len(self.colorPattern)):
-                currentR = self.colorPattern[x][self.RED]
-                currentG = self.colorPattern[x][self.GREEN]
-                currentB = self.colorPattern[x][self.BLUE]
+                if self.configChanged:
+                    break
+                currentR = self.colorPattern[x][RGB.SPECTRUM.R]
+                currentG = self.colorPattern[x][RGB.SPECTRUM.G]
+                currentB = self.colorPattern[x][RGB.SPECTRUM.B]
                 self.setLights(self.RED_PIN, currentR, self.brightLevel)           
                 self.setLights(self.GREEN_PIN, currentG, self.brightLevel)
                 self.setLights(self.BLUE_PIN, currentB, self.brightLevel)            
 
                 if (x == (len(self.colorPattern)-1)):
-                    futureR = self.colorPattern[0][self.RED]
-                    futureG = self.colorPattern[0][self.GREEN]
-                    futureB = self.colorPattern[0][self.BLUE]
+                    futureR = self.colorPattern[0][RGB.SPECTRUM.R]
+                    futureG = self.colorPattern[0][RGB.SPECTRUM.G]
+                    futureB = self.colorPattern[0][RGB.SPECTRUM.B]
                 else:
-                    futureR = self.colorPattern[x+1][self.RED]
-                    futureG = self.colorPattern[x+1][self.GREEN]
-                    futureB = self.colorPattern[x+1][self.BLUE]
+                    futureR = self.colorPattern[x+1][RGB.SPECTRUM.R]
+                    futureG = self.colorPattern[x+1][RGB.SPECTRUM.G]
+                    futureB = self.colorPattern[x+1][RGB.SPECTRUM.B]
                
                 rDone = gDone = bDone = False
 
                 while True:
+                    if self.configChanged:
+                        break
                     # current (positive direction) future
                     
-                    if (((self.colorPattern[x][self.RED] <= futureR) and (currentR >= futureR)) or 
-                        ((self.colorPattern[x][self.RED] >= futureR) and (currentR <= futureR))):
+                    if (((self.colorPattern[x][RGB.SPECTRUM.R] <= futureR) and (currentR >= futureR)) or 
+                        ((self.colorPattern[x][RGB.SPECTRUM.R] >= futureR) and (currentR <= futureR))):
                         rDone = True
                     
-                    if (((self.colorPattern[x][self.GREEN] <= futureG) and (currentG >= futureG)) or 
-                        ((self.colorPattern[x][self.GREEN] >= futureG) and (currentG <= futureG))):
+                    if (((self.colorPattern[x][RGB.SPECTRUM.G] <= futureG) and (currentG >= futureG)) or 
+                        ((self.colorPattern[x][RGB.SPECTRUM.G] >= futureG) and (currentG <= futureG))):
                         gDone = True
                     
-                    if (((self.colorPattern[x][self.BLUE] <= futureB) and (currentB >= futureB)) or 
-                        ((self.colorPattern[x][self.BLUE] >= futureB) and (currentB <= futureB))):
+                    if (((self.colorPattern[x][RGB.SPECTRUM.B] <= futureB) and (currentB >= futureB)) or 
+                        ((self.colorPattern[x][RGB.SPECTRUM.B] >= futureB) and (currentB <= futureB))):
                         bDone = True
 
                     if (rDone and bDone and gDone):
-                        print "All lights transitioned"
+                        log.rgb_log(log.LEVEL.VERBOSE, "All lights transitioned")
                         break
 
                     if (not rDone):
-                        LIGHT_LOG(self.debug_level, LOG_VERBOSE, "rDone is not good")
-                        currentR = self.updateColor(currentR, ((futureR - self.colorPattern[x][self.RED]) / self.fadeTime))
+                        log.rgb_log(log.LEVEL.VERBOSE, "rDone is not good")
+                        currentR = self.updateColor(currentR, ((futureR - self.colorPattern[x][0]) / self.fadeTime))
                     if (not gDone):
-                        LIGHT_LOG(self.debug_level, LOG_VERBOSE, "gDone is not good")
-                        currentG = self.updateColor(currentG, ((futureG - self.colorPattern[x][self.GREEN]) / self.fadeTime))
+                        log.rgb_log(log.LEVEL.VERBOSE, "gDone is not good")
+                        currentG = self.updateColor(currentG, ((futureG - self.colorPattern[x][1]) / self.fadeTime))
                     if (not bDone):
-                        LIGHT_LOG(self.debug_level, LOG_VERBOSE, "bDone is not good")
-                        currentB = self.updateColor(currentB, ((futureB - self.colorPattern[x][self.BLUE]) / self.fadeTime))
+                        log.rgb_log(log.LEVEL.VERBOSE, "bDone is not good")
+                        currentB = self.updateColor(currentB, ((futureB - self.colorPattern[x][2]) / self.fadeTime))
                     
                     time.sleep(.1)
                     self.setLights(self.RED_PIN, currentR, self.brightLevel)           
@@ -168,10 +179,9 @@ class PiLights:
         self.setLights(self.GREEN_PIN, 0, 0)
         self.setLights(self.BLUE_PIN, 0, 0)
         time.sleep(0.1)
-        LIGHT_LOG(self.debug_level, LOG_NONE, "Program Terminating")
+        log.rgb_log(log.LEVEL.STATUS, "Program Terminating")
 
     def __init__(self):
-        self.debug_level = LOG_VERBOSE  
         self.kill = False
         self.fadeTime = 1
         self.loopTime = 1
@@ -182,19 +192,6 @@ class PiLights:
 
         self.mainLoopThread = threading.Thread(target=self.mainLoop)
         self.mainLoopThread.daemon = True
+        self.mainLoopLock = False      
         self.mainLoopThread.start()
-        self.mainLoopLock = False
 
-if __name__ == '__main__':
-     
-    piLights = PiLights()
-    try:
-        while True:
-            for x in range(1, 10):
-                piLights.setFadeTime(x)
-                piLights.setLoopTime(x)
-                time.sleep(.5)
-    except KeyboardInterrupt:
-        pass
-
-    piLights.killProgram()   

@@ -1,1 +1,3 @@
-from config import config
+from Framework import *
+from Modules import *
+from config import *

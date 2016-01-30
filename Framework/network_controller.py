@@ -4,7 +4,9 @@
 # This program runs on the pi and receives messages from the network
 
 import socket
-import lights_listener
+
+from Modules.RGB import module_control_block as RGB_moduleControlBlock
+import threading
 
 #initial greeting
 def initial_greeting():
@@ -18,6 +20,4 @@ def initial_greeting():
 
 initial_greeting()
 
-lightListern1 = lightListener()
-
-print 'Test1234'
+lightsControlBlock = RGB_moduleControlBlock.moduleControlBlock()
