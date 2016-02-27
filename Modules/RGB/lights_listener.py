@@ -12,6 +12,7 @@
 import socket
 
 from light_model import Pattern
+from Framework import logging as log
 
 class lightsListener:
 
@@ -43,19 +44,18 @@ class lightsListener:
     #        print bString
             toReturn.append([rString, gString, bString])
         return toReturn
-
+#    def dicks(self):
+#        print "lightsListener.dicks()"
     def __init__(self):
-        print 'establishing socket...'
-
+        log.rgb_log(log.LEVEL.VERBOSE, "Establishing Lights listener socket")
         #establishes socket and binds it to specified port
         self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.serversocket.bind(('', 15555))
         self.pattern1 = 0
 
 
-        print "socket established..."
-        print ''
-        print ''
+        log.rgb_log(log.LEVEL.VERBOSE, "Lights listener socket established")
+
 
 
 

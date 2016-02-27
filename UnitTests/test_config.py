@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import unittest
-from Framework import config
+import config
 
 class TestLogging(unittest.TestCase):
     def testDIR(self):

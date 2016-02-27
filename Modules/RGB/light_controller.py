@@ -11,14 +11,9 @@ import signal
 from decimal import *
 import threading
 
-from Modules import *
-from Framework import *
-#from Framework import logging as log
-from Modules.RGB.light_model import *
-from Framework.config import *
+from Framework import logging as log
 from Modules.RGB.light_model import *
 
-import Framework.config
 
 # TODO:
 #   Exception Handling
@@ -30,7 +25,8 @@ class PiLights:
     RED_PIN   = 17
     GREEN_PIN = 22
     BLUE_PIN  = 24
-
+    def dicks(self):
+        print "PiLights.dicks()"
     def lockMainLoop(self):
         log.rgb_log(log.LEVEL.VERBOSE, "lockMainLoop()")
         self.mainLoopLock = True
