@@ -13,7 +13,7 @@ import threading
 
 from Framework import logging as log
 from Modules.RGB.light_model import *
-
+import config
 
 # TODO:
 #   Exception Handling
@@ -94,7 +94,7 @@ class PiLights:
         return color
 
     def setLights(self, pin, brightness, bright):
-        #log.rgb_log(log.LEVEL.DEBUG, "Setting Pin " + str(pin) + " = " + str(brightness))
+        log.rgb_log(log.LEVEL.DEBUG, "Setting Pin " + str(pin) + " = " + str(brightness))
         brightness = self.updateColor(brightness, 0)
         realBrightness = int(int(brightness) * (float(bright) / 255.0))
         self.pi.set_PWM_dutycycle(pin, realBrightness)
@@ -190,4 +190,30 @@ class PiLights:
         self.mainLoopThread.daemon = True
         self.mainLoopLock = False      
         self.mainLoopThread.start()
+if __name__ == '__main__':
+   print "GO" 
+   piLights = PiLights()
+   numColors = 3
+   fadeTime = 3
+   loopTime = 1
+   brightLevel = 255 
+   A=85
+   B=170
+   C=255
+   colors = [ [A,B,C], [B,C,A], [C,A,B]]
+   #colors = [ [0, 128, 255], [128, 255, 0], [255, 0, 128]]
+   pattern = Pattern(numColors, fadeTime, loopTime, brightLevel, colors)
 
+   config.GLOBAL.LOG.LEVEL = log.LEVEL.VERBOSE
+   config.GLOBAL.LOG.OUTPUT = log.OUTPUT.BOTH
+
+   print "Beginning Program Now"
+   piLights.setPattern(pattern)
+
+   while True:
+       try:
+          pass
+       except KeyboardInterrupt:
+            print "Quitting"
+            piLights.killProgram()
+            break

@@ -36,6 +36,15 @@ def confirmLog(file, level, msg):
         pass
     return False
 
+def confirmStdout(file, level, msg):
+    exp_module = "[TEST]"
+    exp_level = "[" + printLogLevel(level) + "]"
+    out, err = capsys.readouterr
+    arr = out.split()
+    if (arr[2] == exp_level) and (arr[3] == exp_module) and (arr[4] == msg):
+        return True
+    return False    
+
 class TestLogging(unittest.TestCase):
     def setUp(self):
         self.log_lvl = config.GLOBAL.LOG.LEVEL
@@ -55,7 +64,7 @@ class TestLogging(unittest.TestCase):
         setOutputNone()
         test_log(LEVEL.NONE, self.id())
         self.assertFalse(confirmLog(config.FILE.LOG.TEST, LEVEL.NONE, self.id()))
-
+    
     def testNoneToStdout(self):
         setLevelNone()
         setOutputStdout()

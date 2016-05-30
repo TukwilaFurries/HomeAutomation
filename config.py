@@ -1,4 +1,7 @@
 #!/usr/bin/python
+
+global moduleMailBoxes
+
 class DIR:
     import os
     # Directory path variables
@@ -37,3 +40,4 @@ class RGB:
         R = 17
         G = 22
         B = 24
+
