@@ -1,1 +1,1 @@
-from logging import *
+from .home_automation_logging import *

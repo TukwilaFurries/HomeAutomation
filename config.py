@@ -1,43 +1,70 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 global moduleMailBoxes
 
 class DIR:
-    import os
+    import os.path as path
+
     # Directory path variables
-    BASE            = os.path.dirname(os.path.realpath(__file__))
+    BASE            = path.dirname(path.realpath(__file__))
     FRAMEWORK       = BASE + "/Framework"
     LOGS            = BASE + "/Logs"
     MODS            = BASE + "/Modules"
     RGB             = MODS + "/RGB"
     TEST            = BASE + "/UnitTests"
     TEST_FRAMEWORK  = TEST + "/Framework"
-class FILE:
-    class LOG:
-        RGB = DIR.LOGS + "/rgb.out"
-        FRAMEWORK = DIR.LOGS + "/framework.out"
-        TEST = DIR.TEST_FRAMEWORK + "/logging.out"
+
+class LOG:
+    @staticmethod
+    def getFrameworkLogLocation():
+        return DIR.LOGS + "/framework.log"
+    @staticmethod
+    def getTestLogLocation():
+        return DIR.LOGS + "/test.log"
+    @staticmethod
+    def getLogLevel():
+        import logging
+        return logging.DEBUG
+
+    # To print to screen AS WELL AS logs
+    @staticmethod
+    def printToScreen():
+        return True
+        
+# Delete this
 class PI:
     # IP Addresses
     ADDR = "10.0.0.98"
-
+# Delete this
 class SERVER:
     ADDR = "10.0.0.99"
     PORT = ""
    
 class NAMES:
-    RGB          = "RGB"
     FRAMEWORK   = "FRAMEWORK"
     TEST        = "TEST"
+
+# Delete this
 class GLOBAL:
-    class LOG:
-        import Framework
-        LEVEL = Framework.logging.LEVEL.VERBOSE
-        OUTPUT = Framework.logging.OUTPUT.BOTH
+    class NETWORK:
+        PIPORT = 15555
 
-class RGB:
-    class PIN:
-        R = 17
-        G = 22
-        B = 24
 
+class MODULES:
+
+    @classmethod
+    def getClass(cls, inputID):
+        if inputID == MODULES.NETWORK_CONTROLLER.ID:
+            return MODULES.NETWORK_CONTROLLER.NAME
+
+        if inputID == MODULES.RGB.ID:
+            return MODULES.RGB.NAME
+            
+    
+    class NETWORK_CONTROLLER:
+        ID = 0
+        NAME = "network_controller"
+
+    class RGB:
+        ID = 1
+        NAME = "RGB"
