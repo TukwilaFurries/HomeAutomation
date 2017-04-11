@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-global moduleMailBoxes
+
 
 class DIR:
     import os.path as path
@@ -31,11 +31,11 @@ class LOG:
     def printToScreen():
         return True
         
-# Delete this
+# Delete this //maybe dont delete this? -sideway 1/2/17
 class PI:
     # IP Addresses
     ADDR = "10.0.0.98"
-# Delete this
+# Delete this //maybe dont delete this? -sideway 1/2/17
 class SERVER:
     ADDR = "10.0.0.99"
     PORT = ""
@@ -44,7 +44,7 @@ class NAMES:
     FRAMEWORK   = "FRAMEWORK"
     TEST        = "TEST"
 
-# Delete this
+# Delete this //maybe dont delete this? -sideway 1/2/17
 class GLOBAL:
     class NETWORK:
         PIPORT = 15555

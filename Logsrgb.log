@@ -1,0 +1,9 @@
+[2017-04-11 02:43:51,747] [RGB] : New Pattern Recieved:<Modules.RGB.light_model.Pattern object at 0x76575d10>
+[2017-04-11 02:43:51,750] [RGB] : Fade Time Changed to 2
+[2017-04-11 02:43:51,753] [RGB] : Loop Time Changed to 5
+[2017-04-11 02:43:51,755] [RGB] : Brightness Chanes to 128
+[2017-04-11 02:43:51,757] [RGB] : setColorPattern() {
+[2017-04-11 02:43:51,759] [RGB] : } setColorPattern()
+[2017-04-11 02:43:51,761] [RGB] : Number of Colors Changed to: 3
+[2017-04-11 02:43:51,763] [RGB] : } setPattern()
+[2017-04-11 02:44:02,914] [RGB] : Kill Program Recieved

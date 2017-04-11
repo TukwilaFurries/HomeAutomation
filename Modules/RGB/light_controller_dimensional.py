@@ -11,7 +11,7 @@ import signal
 from decimal import *
 import threading
 
-from Framework import logging as log
+#from Framework import logging as log
 from Modules.RGB.light_model import *
 import config
 
@@ -39,58 +39,58 @@ class PiLights:
         print "PiLights.dicks()"
 
     def lockMainLoop(self):
-        log.rgb_log(log.LEVEL.VERBOSE, "lockMainLoop()")
+        #log.rgb_log(log.LEVEL.VERBOSE, "lockMainLoop()")
         self.mainLoopLock = True
 
     def unlockMainLoop(self):
-        log.rgb_log(log.LEVEL.VERBOSE, "unlockMainLoop()")
+        #log.rgb_log(log.LEVEL.VERBOSE, "unlockMainLoop()")
         self.mainLoopLock = False
 
     def setFadeTime(self, ft):
-        log.rgb_log(log.LEVEL.STATUS, "Fade Time Changed to " + str(ft))
+        #log.rgb_log(log.LEVEL.STATUS, "Fade Time Changed to " + str(ft))
         self.mainLoopLock = True      
         self.fadeTime = ft
         self.mainLoopLock = False
         self.configChagned = True
 
     def setLoopTime(self, lt):
-        log.rgb_log(log.LEVEL.STATUS, "Loop Time Changed to " + str(lt))
+        #log.rgb_log(log.LEVEL.STATUS, "Loop Time Changed to " + str(lt))
         self.mainLoopLock = True
         self.loopTime = lt
         self.mainLoopLock = False
         self.configChanged = True
 
     def setBrightLevel(self, bl):
-        log.rgb_log(log.LEVEL.STATUS, "Brightness Chanes to " + str(bl))
+        #log.rgb_log(log.LEVEL.STATUS, "Brightness Chanes to " + str(bl))
         self.mainLoopLock = True       
         self.brightLevel = bl
         self.mainLoopLock = False
         self.configChanged = True
 
     def setColorPattern(self, cp):
-        log.rgb_log(log.LEVEL.STATUS, "colorPattern: " + self.cp)
+        #log.rgb_log(log.LEVEL.STATUS, "colorPattern: " + self.cp)
         self.mainLoopLock = True
         self.colorPattern = cp
         self.mainLoopLock = False
         self.configChanged = True
 
     def setPattern(self, p):
-        log.rgb_log(log.LEVEL.VERBOSE, "setPattern()") 
+        #log.rgb_log(log.LEVEL.VERBOSE, "setPattern()") 
         self.mainLoopLock = True
         self.fadeTime = p.getFadeTime()
         self.loopTime = p.getLoopTime()
         self.brightLevel = p.getBrightLevel()
         self.colorPattern = p.getColors()
 
-        log.rgb_log(log.LEVEL.STATUS, "Fade Time Changed to " + str(self.fadeTime))
-        log.rgb_log(log.LEVEL.STATUS, "Loop Time Changed to " + str(self.loopTime))
-        log.rgb_log(log.LEVEL.STATUS, "Brightnes Changed to " + str(self.brightLevel))
-        log.rgb_log(log.LEVEL.STATUS, "Pattern changed to " + str(self.colorPattern))
+        #log.rgb_log(log.LEVEL.STATUS, "Fade Time Changed to " + str(self.fadeTime))
+        #log.rgb_log(log.LEVEL.STATUS, "Loop Time Changed to " + str(self.loopTime))
+        #log.rgb_log(log.LEVEL.STATUS, "Brightnes Changed to " + str(self.brightLevel))
+        #log.rgb_log(log.LEVEL.STATUS, "Pattern changed to " + str(self.colorPattern))
         self.mainLoopLock = False
         self.configChanged = True
 
     def killProgram(self):
-        log.rgb_log(log.LEVEL.STATUS, "killProgram()")
+        #log.rgb_log(log.LEVEL.STATUS, "killProgram()")
         self.kill = True
         self.configChanged = True
         self.mainLoopThread.join()
@@ -138,7 +138,7 @@ class PiLights:
 
        
     def smartLoop(self):
-        log.rgb_log(log.LEVEL.DEBUG, "smartLoop()")
+        #log.rgb_log(log.LEVEL.DEBUG, "smartLoop()")
         self.v = coord(0,0,0); 
 
         vertex = []
@@ -258,8 +258,8 @@ if __name__ == '__main__':
    #colors = [ [0, 128, 255], [128, 255, 0], [255, 0, 128]]
    pattern = Pattern(numColors, fadeTime, loopTime, brightLevel, colors)
 
-   config.GLOBAL.LOG.LEVEL = log.LEVEL.VERBOSE
-   config.GLOBAL.LOG.OUTPUT = log.OUTPUT.BOTH
+   #config.GLOBAL.LOG.LEVEL = log.LEVEL.VERBOSE
+   #config.GLOBAL.LOG.OUTPUT = log.OUTPUT.BOTH
 
    print "Beginning Program Now"
    piLights.setPattern(pattern)

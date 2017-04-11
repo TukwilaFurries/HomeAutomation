@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 class RGB:
     class SPECTRUM:
@@ -73,6 +73,12 @@ class Pattern:
         else:
             self.colors = colorsIn
 
+    #def __str__(self):
+    #    colors = ""
+    #    for c in colors:
+    #        colors += str(c
+    #    return "Fade Time: " + str(self.fadeTime) + " Loop Time " + str(self.loopTime) + " Brightness: " + str(self.brightLevel) + " Colors: " 
+
     ##### Public Getters
     def getColors(self):        return self.colors
     def getNumColors(self):     return self.numColors
@@ -118,7 +124,6 @@ class Pattern:
 
     def setColorB(self, patternIndex, bValue):
         self.setRGB(patternIndex, 2, bValue)
-
 #test 3
 
 

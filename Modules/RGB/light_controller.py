@@ -1,99 +1,80 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-import termios
-import tty
 import pigpio
-import time
 import signal 
 from decimal import *
-import threading
-import multiprocessing as mp
 from multiprocessing.managers import BaseManager
-from light_model import *
+from Modules.RGB.light_model import *
 import pi_config
 from time import sleep
-import setproctitle
-import home_automation_logging
-from home_automation_logging import HomeAutomationLogging
-# TODO:
-#   Exception Handling
-#   Logging (NoLog, Status Messages, Debugging Messages, Full Trace)
-#
-#
+from Framework.home_automation_logging import HomeAutomationLogging
+
+
+class MyLoggingManager(BaseManager): pass
+
+class MainLoopStatus:
+    START   = 0 # Loop Start Requested
+    STARTED = 1 # Loop Has Started
+    KILL    = 2 # Please kill the loop / thread
+    STOP    = 3 # Loop Stop Requested but thread remains active
+    STOPPED = 4 # Loop Has Stopped, thread is exiting
 
 class PiLights:
 
-    def getMainLoopLock(self):
-        return self.mainLoopLock
-
-    def lockMainLoop(self):
-        self.log.debug("lockMainLoop()")
-        self.mainLoopLock = True
-
-    def unlockMainLoop(self):
-        self.log.debug("unlockMainLoop()")
-        self.mainLoopLock = False
-
     def setFadeTime(self, ft):
-        self.log.info("Fade Time Changed to " + str(ft))
-        self.mainLoopLock = True      
+        self.getLog().info("Fade Time Changed to " + str(ft))
         self.fadeTime = ft
-        self.mainLoopLock = False
         self.configChagned = True
     def getFadeTime(self):
         return self.fadeTime
 
     def setLoopTime(self, lt):
-        self.log.info("Loop Time Changed to " + str(lt))
-        self.mainLoopLock = True
+        self.getLog().info("Loop Time Changed to " + str(lt))
         self.loopTime = lt
-        self.mainLoopLock = False
         self.configChanged = True
     def getLoopTime(self):
         return self.loopTime
 
     def setBrightLevel(self, bl):
-        self.log.info("Brightness Chanes to " + str(bl))
-        self.mainLoopLock = True       
+        self.getLog().info("Brightness Chanes to " + str(bl))
         self.brightLevel = bl
-        self.mainLoopLock = False
         self.configChanged = True
     def getBrightLevel(self):
         return self.brightLevel
 
     def setColorPattern(self, cp):
-        self.log.info("Color Pattern changed to: " + self.cp)
-        self.mainLoopLock = True
+        self.getLog().debug("setColorPattern() {")
         self.colorPattern = cp
         self.numColors = len(cp)
-        self.mainLoopLock = False
         self.configChanged = True
+        self.getLog().debug("} setColorPattern()")
+
     def getColorPattern(self):
         return self.colorPattern
+    
+    def getNumColors(self):
+        return self.numColors
+
+    def setNumColors(self, num):
+        self.getLog().info("Number of Colors Changed to: " + str(num))
+        self.numColors = num
+    
+    def setConfigChanged(self, changed):
+        self.configChanged = changed
+    def getConfigChanged(self):
+        return self.configChanged
 
     def setPattern(self, p):
-        self.log.debug("setPattern()") 
-        self.mainLoopLock = True
+        self.getLog().info("New Pattern Recieved:" + str(p))
         self.setFadeTime(p.getFadeTime())
         self.setLoopTime(p.getLoopTime())
         self.setBrightLevel(p.getBrightLevel())
         self.setColorPattern(p.getColors())
-        self.setNumColors(p.getNumColors)
-        self.lockMainLoop()
+        self.setNumColors(p.getNumColors())
         self.setConfigChanged(True)
+        if self.logging_enabled: self.getLog().debug("} setPattern()")
 
-    def killProgram(self):
-        self.log.info("Kill Program Recieved")
-        self.kill = True
-        self.configChanged = True
-        #self.mainLoopThread.join()
-        self.pi.stop()
-
-    def continue_loop(self):
-        return not self.kill
     
     def updateColor(self, color, step):
         color += step
@@ -104,60 +85,109 @@ class PiLights:
         return color
 
     def setLights(self, pin, brightness, bright):
-        self.log.debug("Setting Pin " + str(pin) + " = " + str(brightness))
         brightness = self.updateColor(brightness, 0)
         realBrightness = int(int(brightness) * (float(bright) / 255.0))
         self.pi.set_PWM_dutycycle(pin, realBrightness)
 
-    def getNumColors(self):
-        return self.numColors
+    def getLog(self):
+        return self.log
+    
 
-    def setConfigChanged(self, changed):
-        self.configChanged = changed
+    def getMainLoopStatus(self):
+        return self.mainLoopStatus
+    def setMainLoopStatus(self, mainLoopStatus):
+        self.mainLoopStatus = mainLoopStatus
 
-    def getConfigChanged(self):
-        return self.configChanged
+    def killProgram(self):
+        self.getLog().info("Kill Program Recieved")
+        self.mainLoopStatus = MainLoopStatus.KILL
+        self.configChanged = True
+        
+        # Wait for main loop to exit on its own
+        while self.mainLoopStatus is not MainLoopStatus.STOPPED:
+            sleep(0.1)
+            pass
+        else:
+            self.pi.stop()
+
+    def stopProgram(self):
+        self.setLights(pi_config.RGB.getPinR(), 0, 0)
+        self.setLights(pi_config.RGB.getPinG(), 0, 0)
+        self.setLights(pi_config.RGB.getPinB(), 0, 0)
+
+
 
     def __init__(self):
-        self.kill = False
+        self.logging_enabled = True
+        print("I SHOULD BE FIRST")
+        self.mainLoopStatus = MainLoopStatus.START
+
         self.fadeTime = 1
         self.loopTime = 1
         self.brightLevel = 1
         self.colorPattern = [] 
         self.numColors = 0
         self.pi = pigpio.pi()
-        self.mainLoopLock = False
         self.configChanged = False
-        self.log = HomeAutomationLogging(pi_config.RGB.getLogLocation())
+        if self.logging_enabled:
+            MyLoggingManager.register('HomeAutomationLogging', HomeAutomationLogging)
+            self.logging_manager = MyLoggingManager()
+            self.logging_manager.daemon = True
+            self.logging_manager.start()
+            self.log = self.logging_manager.HomeAutomationLogging("RGB", pi_config.RGB.getLogLocation())
+        #self.process = mp.Process(target=mainLoop, args=(self,), name="PiLights")
+        #self.process.start()
+        # TODO: Join log 
 
+def printStatus(pi_lights):
+    s = "NULL"
+    if (pi_lights.getMainLoopStatus() is MainLoopStatus.START):
+        s = "`START"
+    elif (pi_lights.getMainLoopStatus() is MainLoopStatus.STARTED):
+        s = "STARTED"
+    elif (pi_lights.getMainLoopStatus() is MainLoopStatus.STOP):
+        s = "STOP"
+    elif (pi_lights.getMainLoopStatus() is MainLoopStatus.STOPPED):
+        s = "STOPPED"
+    elif (pi_lights.getMainLoopStatus() is MainLoopStatus.KILL):
+        s = "KILL"
+    print("Status: " + s)
+        
+def getDiff(numA, numB):
+    if (numA <= numB):
+        return numB - numA
+    else:
+        return numA - numB
 # fadeTime = The total time to move from one color to the next
 # loopTime = The total time to move through the entire pattern list
 # brightLevel = The total brightness to use
 # pattern = The array of patterns to transition between
 def mainLoop(pi_lights):
+    import setproctitle
+
     setproctitle.setproctitle("LightController")
-    self.log.debug("mainLoop()")
-    while (pi_lights.continue_loop() == True):
+    pi_lights.setMainLoopStatus(MainLoopStatus.STARTED)
+    # Only exit if killing the thread
+    while (pi_lights.getMainLoopStatus() is not MainLoopStatus.KILL):
+        # We should be here every LOOP time
+        # If STOP, program not dead, just lights are turned off
+        if (pi_lights.getMainLoopStatus() is MainLoopStatus.STOP):
+            sleep(0.5)
+            continue
+        printStatus(pi_lights)
         pi_lights.setConfigChanged(False)
 
-        while (pi_lights.getMainLoopLock()):
-            print("Main Loop Locked")
-            #log.rgb_log(log.LEVEL.DEBUG, "Main Loop Locked")
-            time.sleep(.1)
-
         for x in range (0, pi_lights.getNumColors()):
-            print("Iteration: %u of %u" % (x, pi_lights.getNumColors()))
-            if pi_lights.getConfigChanged():
-                print("Configuration Changed")
+            print ("Number of sexy colors: " + str(pi_lights.getNumColors()))
+            # Only STARTED, do work. Otherwise leave immediately
+            if (pi_lights.getMainLoopStatus() is not MainLoopStatus.STARTED):
                 break
-
             currentR = pi_lights.getColorPattern()[x][RGB.SPECTRUM.R]
             currentG = pi_lights.getColorPattern()[x][RGB.SPECTRUM.G]
             currentB = pi_lights.getColorPattern()[x][RGB.SPECTRUM.B]
             pi_lights.setLights(pi_config.RGB.getPinR(), currentR, pi_lights.getBrightLevel())           
             pi_lights.setLights(pi_config.RGB.getPinG(), currentG, pi_lights.getBrightLevel())
             pi_lights.setLights(pi_config.RGB.getPinB(), currentB, pi_lights.getBrightLevel())            
-            print("X: %u / %u" % (x, pi_lights.getNumColors()))
             if (x == pi_lights.getNumColors()-1):
                 futureR = pi_lights.getColorPattern()[0][RGB.SPECTRUM.R]
                 futureG = pi_lights.getColorPattern()[0][RGB.SPECTRUM.G]
@@ -167,90 +197,97 @@ def mainLoop(pi_lights):
                 futureG = pi_lights.getColorPattern()[x+1][RGB.SPECTRUM.G]
                 futureB = pi_lights.getColorPattern()[x+1][RGB.SPECTRUM.B]
                
+            tSteps = 50
+            hopsR = (futureR - currentR) / tSteps
+            hopsG = (futureG - currentG) / tSteps
+            hopsB = (futureB - currentB) / tSteps
+
             rDone = gDone = bDone = False
 
-            while True:
-                if pi_lights.getConfigChanged():
+            # This is the "Fade"
+            while not pi_lights.getConfigChanged():
+                # If STARTED, do work. Otherwise leave immediately
+                if (pi_lights.getMainLoopStatus() is not MainLoopStatus.STARTED):
+                    printStatus(pi_lights)
                     break
-                # current (positive direction) future
-                  
+
+                # current (positive direction) future                  
                 if (((pi_lights.getColorPattern()[x][RGB.SPECTRUM.R] <= futureR) and (currentR >= futureR)) or 
                     ((pi_lights.getColorPattern()[x][RGB.SPECTRUM.R] >= futureR) and (currentR <= futureR))):
-                    rDone = True
+                        rDone = True
                     
                 if (((pi_lights.getColorPattern()[x][RGB.SPECTRUM.G] <= futureG) and (currentG >= futureG)) or 
                     ((pi_lights.getColorPattern()[x][RGB.SPECTRUM.G] >= futureG) and (currentG <= futureG))):
-                    gDone = True
+                        gDone = True
                     
                 if (((pi_lights.getColorPattern()[x][RGB.SPECTRUM.B] <= futureB) and (currentB >= futureB)) or 
                     ((pi_lights.getColorPattern()[x][RGB.SPECTRUM.B] >= futureB) and (currentB <= futureB))):
-                    bDone = True
+                        bDone = True
 
                 if (rDone and bDone and gDone):
-                    #log.rgb_log(log.LEVEL.VERBOSE, "All lights transitioned")
+                    # Show this color for this long (Hold time)
+                    # XXX: change to getHoldTime() and such
+                    sleep(pi_lights.getLoopTime())
                     break
-
+                # vector / fadeTime = NumberOfHops
                 if (not rDone):
-                    #log.rgb_log(log.LEVEL.VERBOSE, "rDone is not good")
-                    currentR = pi_lights.updateColor(currentR, ((futureR - pi_lights.getColorPattern()[x][0]) / pi_lights.getFadeTime()))
+                    currentR = pi_lights.updateColor(currentR, hopsR) # / pi_lights.getFadeTime()) #((futureR - pi_lights.getColorPattern()[x][0]) / pi_lights.getFadeTime()))
                 if (not gDone):
-                    #log.rgb_log(log.LEVEL.VERBOSE, "gDone is not good")
-                    currentG = pi_lights.updateColor(currentG, ((futureG - pi_lights.getColorPattern()[x][1]) / pi_lights.getFadeTime()))
+                    currentG = pi_lights.updateColor(currentG, hopsG) # / pi_lights.getFadeTime()) #((futureG - pi_lights.getColorPattern()[x][1]) / pi_lights.getFadeTime()))
                 if (not bDone):
-                    #log.rgb_log(log.LEVEL.VERBOSE, "bDone is not good")
-                    currentB = pi_lights.updateColor(currentB, ((futureB - pi_lights.getColorPattern()[x][2]) / pi_lights.getFadeTime()))
-                    
-                time.sleep(.1)
+                    currentB = pi_lights.updateColor(currentB, hopsB)
+
                 pi_lights.setLights(pi_config.RGB.getPinR(), currentR, pi_lights.getBrightLevel())           
                 pi_lights.setLights(pi_config.RGB.getPinG(), currentG, pi_lights.getBrightLevel())
                 pi_lights.setLights(pi_config.RGB.getPinB(), currentB, pi_lights.getBrightLevel()) 
-          
-            if (pi_lights.getLoopTime() > pi_lights.getFadeTime()):
-                time.sleep((pi_lights.getLoopTime() - pi_lights.getFadeTime()) / pi_lights.getNumColors())
-            else:
-                time.sleep ((pi_lights.getFadeTime() - pi_lights.getLoopTime()) / pi_lights.getNumColors())
-    pi_lights.setLights(pi_config.RGB.getPinR(), 0, 0)
-    pi_lights.setLights(pi_config.RGB.getPinG(), 0, 0)
-    pi_lights.setLights(pi_config.RGB.getPinB(), 0, 0)
-    time.sleep(0.1)
-    #log.rgb_log(log.LEVEL.STATUS, "Program Terminating")
 
-
-class MyPiLightsManager(BaseManager): pass
+                #intervalUnitOfTime = 1/255
+                sleep(pi_lights.getFadeTime() / tSteps)
+            print("Bitches")
+    pi_lights.stopProgram()
+    pi_lights.setMainLoopStatus(MainLoopStatus.STOPPED)
 
 if __name__ == '__main__':
-    if True:
-        print("Go")
-        mp.set_start_method('spawn')
-        qIn = mp.Queue()
-        qOut = mp.Queue()
+    import multiprocessing as mp
 
-        print("Creating Multiprocess Class")
+
+    class MyPiLightsManager(BaseManager): pass
+
+    if True:
+
+        print("Go")
+        #mp.set_start_method('spawn')
         MyPiLightsManager.register('PiLights', PiLights)
         manager = MyPiLightsManager()
-        manager.start()
 
+        # child processes should ignore /ALL/ signals
+        default_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        
+        # Start everything up
+
+        manager.start()
         piClass = manager.PiLights()
         process = mp.Process(target=mainLoop, args=(piClass,), name="PiLights")
-        print("Creating Pattern")
+        process.start()
+        signal.signal(signal.SIGINT, default_handler)
+        sleep(5)
+        
         numColors = 3
-        fadeTime = 3 
-        loopTime = 1 
+        fadeTime = 2
+        loopTime = 5
         brightLevel = 128 
         A=85
         B=170
         C=255
         colors = [ [A,B,C], [B,C,A], [C,A,B]]
+        #colors = [ [0, 255,0]]
+        
         pattern = Pattern(numColors, fadeTime, loopTime, brightLevel, colors)
-
-        print("Beginning Program Now")
-        process.start()
-        print("Setting Pattern")
         piClass.setPattern(pattern)
-        while True:
-            try:
-                sleep(1)
-            except KeyboardInterrupt:
-                print("Quitting")
-                piClass.killProgram()
-                break
+        try:
+            while(True):
+                sleep(.01)
+        except KeyboardInterrupt:
+            piClass.killProgram()
+            process.join()

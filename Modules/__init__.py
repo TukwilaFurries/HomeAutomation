@@ -1,1 +1,1 @@
-from .RGB import *
+from .RGB import light_controller

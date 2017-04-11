@@ -24,11 +24,11 @@ class ModuleInfoBlock:
 def runNetworkCom(MBsIn, directoryIn):
 
 
-#    log.framework_log(log.LEVEL.DEBUG, "About to start network com")
+    print(("About to start network com"))
     t1 = threading.Thread(target = NetworkComThread, args = (MBsIn, directoryIn,))
     t1.daemon = True
     t1.start()
-#    log.framework_log(log.LEVEL.VERBOSE, "network com Thread Created and Started")
+    print(("network com Thread Created and Started"))
 
 def NetworkComThread(MBsIn, directoryIn):
 
@@ -37,15 +37,16 @@ def NetworkComThread(MBsIn, directoryIn):
 def runRGBModuleControlBlock(MBIn):
 
 
-#    log.framework_log(log.LEVEL.DEBUG, "About to start light module thread")
+    print(("About to start light module thread"))
     t1 = threading.Thread(target=RGBModuleControlThread, args = (MBIn,))
     t1.daemon = True
     t1.start()
-#    log.framework_log(log.LEVEL.VERBOSE, "RGB Thread Created and Started")
+    print(("RGB Thread Created and Started"))
 
 def RGBModuleControlThread(MBIn):
-
+    print ("RGBModuleControlThread() {")
     lightsControlBlock = RGB_moduleControlBlock.moduleControlBlock(MBIn)
+    print("} RGBModuleControlThread()")
 
 def signal_term_handler(signal, frame):
     print ('got SIGTERM')
@@ -62,34 +63,36 @@ def signal_handler(signal, frame):
     time.sleep(5)
     sys.exit(0)
 
-print ('running new network controller')
+if __name__ == "__main__":
+
+    # child processes should ignore /ALL/ signals
+    default_handler = signal.getsignal(signal.SIGINT)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
-moduleMailBoxes = []
+    default_handler2 = signal.getsignal(signal.SIGTERM)
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    print ('running new network controller')
 
-moduleInfoBlocks = []
+    moduleMailBoxes = []
+    moduleInfoBlocks = []
 
-MB0 = []
-MB1 = []
+    MB0 = []
+    MB1 = []
 
-moduleMailBoxes.append(MB0)
-moduleMailBoxes.append(MB1)
+    moduleMailBoxes.append(MB0)
+    moduleMailBoxes.append(MB1)
 
-mailboxDirectory = {config.MODULES.NETWORK_CONTROLLER.ID:moduleMailBoxes[0], config.MODULES.RGB.ID:moduleMailBoxes[1]}
+    mailboxDirectory = {config.MODULES.NETWORK_CONTROLLER.ID:moduleMailBoxes[0], config.MODULES.RGB.ID:moduleMailBoxes[1]}
 
+    runRGBModuleControlBlock(MB1)
+    runNetworkCom(moduleMailBoxes, mailboxDirectory)
 
-
-runRGBModuleControlBlock(MB1)
-
-runNetworkCom(moduleMailBoxes, mailboxDirectory)
-
-
-
-while True:
-
+    time.sleep(2)
 
     signal.signal(signal.SIGINT, signal_handler)
- 
     signal.signal(signal.SIGTERM, signal_term_handler)
 
-    time.sleep(1)
+    while True:
+
+        time.sleep(1)
